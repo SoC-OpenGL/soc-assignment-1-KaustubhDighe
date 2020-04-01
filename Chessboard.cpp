@@ -10,17 +10,22 @@ const unsigned int SCR_WIDTH = 800;
 const unsigned int SCR_HEIGHT = 600;
 
 const char *vertexShaderSource = "#version 330 core\n"
-    "layout (location = 0) in vec3 aPos;\n"
-    "void main()\n"
-    "{\n"
-    "   gl_Position = vec4(aPos, 1.0);\n"
-    "}\0";
+    	"layout (location = 0) in vec3 aPos;\n"
+	"layout (location = 1) in vec3 deviation;\n"
+	"out vec3 deviation;\n"
+    	"void main()\n"
+    	"{\n"
+    	"   gl_Position = vec4(aPos + deviation, 1.0);\n"
+    	"}\0";
 const char *fragmentShaderSource = "#version 330 core\n"
-    "out vec4 FragColor;\n"
-    "void main()\n"
-    "{\n"
-    "   FragColor = vec4(1.0f, 0.5f, 0.2f, 1.0f);\n"
-    "}\n\0";
+	"out vec4 FragColor;\n"
+	"in vec3 deviation;\n"
+	"void main()\n"
+	"{\n"
+	"	if ((floor(deviation.x/8)%2 && floor(deviation.y/8)%2) || ((floor(deviation.x/8)%2)&&(floor(deviation.x/8)%2))) \n"
+	"   		FragColor = vec4(1.0f, 1.0f, 1.0f, 1.0f);\n"
+	"	else FragColor = vec4(0.0f,0.0f,0.0f,1.0f);\n"
+    	"}\n\0";
 
 int main() {
     glfwInit();
@@ -75,41 +80,45 @@ int main() {
     }
     glDeleteShader(vertexShader);
     glDeleteShader(fragmentShader);
+    
+    float x=0,y=0,z=0; 
 
-    float vertices[] = {
-         0.0f,  0.0f, 0.0f, // left  
-         0.5f,  0.0f, 0.0f, // right 
-         0.5f,  1.0f, 0.0f  // top
-	    
-    }; 
-
-    unsigned int VBO, VAO;
-    glGenVertexArrays(1, &VAO);
-    glGenBuffers(1, &VBO);
+    unsigned int VBO[64], VAO[64];
+    glGenVertexArrays(64, VAO);
+    glGenBuffers(64, VBO);
     glBindVertexArray(VAO);
+    
+    for (int i=0;i<64;i++) {
+	x = i%8;
+	y = i/8;
+	float vertices[] = {         
+         0.0f,  0.0f, 0.0f,   x,y,z,
+         1.0f,  0.0f, 0.0f,   x,y,z,   
+         0.0f,  1.0f, 0.0f,   x,y,z,   
+	 1.0f,  1.0f, 0.0f,   x,y,z
+        };
 
-    glBindBuffer(GL_ARRAY_BUFFER, VBO);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+    	glBindBuffer(GL_ARRAY_BUFFER, VBO[i]);
+    	glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
 
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
-    glEnableVertexAttribArray(0);
-
-    glBindBuffer(GL_ARRAY_BUFFER, 0); 
-    glBindVertexArray(0); 
+    	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+    	glEnableVertexAttribArray(0);
+    }
 
     while (!glfwWindowShouldClose(window)) {
         processInput(window);
         glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT);
         glUseProgram(shaderProgram);
-        glBindVertexArray(VAO); 
-        glDrawArrays(GL_TRIANGLES, 0, 3);
-
+        for(int i=0;i<64;i++) {
+	    glBindVertexArray(VAO[i]); 
+            glDrawArrays(GL_QUADS, 0, 4);
+	}
         glfwSwapBuffers(window);
         glfwPollEvents();
     }
-    glDeleteVertexArrays(1, &VAO);
-    glDeleteBuffers(1, &VBO);
+    glDeleteVertexArrays(64, VAO);
+    glDeleteBuffers(64, VBO);
     glfwTerminate();
     return 0;
 }
